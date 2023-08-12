@@ -24,6 +24,9 @@
     <ClCompile Include="SGObjectManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SGContrainers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SGMemoryManager.h">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="SGDefines.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SGContainers.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

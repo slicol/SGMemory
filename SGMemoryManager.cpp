@@ -1,7 +1,8 @@
 #include "SGMemoryManager.h"
 
-uint16 SGPoolAllocator::MemSizeToIndex[SG_MEM_BUCKET_COUNT] = { 0 };
 
+
+uint16 SGPoolAllocator::MemSizeToIndex[SG_MEM_BUCKET_COUNT] = { 0 };
 
 uint16 SGPoolAllocator::SmallBlockSizes[SG_MEM_POOL_COUNT] = {
 	16, 32, 48, 64, 80, 96, 128,160,
@@ -9,6 +10,7 @@ uint16 SGPoolAllocator::SmallBlockSizes[SG_MEM_POOL_COUNT] = {
 	576, 640, 704, 768, 896, 1024 - 16, 1168, 1488,
 	1632, 2048 - 16
 };
+
 
 SGPoolAllocator::SGPoolAllocator(SGMemoryChunk* InChunk)
 {
@@ -71,8 +73,14 @@ SGFreeBlock* SGPoolAllocator::AllocateNewPoolWithFirstFreeBlock(uint32 InBlockSi
 	return nullptr;
 }
 
-SGMemoryManager& SGMemoryManager::Get()
+
+SGMemorySnapshot SGMemoryManager::MakeSnapshot()
 {
-	static SGMemoryManager Inst;
-	return Inst;
+	SGMemorySnapshot Result;
+	Result.Size = MemoryChunk->GetUsedSize();
+	Result.Buffer = ::_aligned_malloc(Result.Size, SG_MEM_ALIGNMENT);
+	memset(Result.Buffer, 0, Result.Size);
+	memcpy(Result.Buffer, MemoryChunk->GetBasePtr(), Result.Size);
+	Result.BaseAddr = (uint64)MemoryChunk->GetBasePtr();
+	return Result;
 }

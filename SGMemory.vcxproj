@@ -139,11 +139,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SGContrainers.cpp" />
     <ClCompile Include="SGMemoryManager.cpp" />
     <ClCompile Include="SGMemory.cpp" />
     <ClCompile Include="SGObjectManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SGContainers.h" />
     <ClInclude Include="SGDefines.h" />
     <ClInclude Include="SGMemoryManager.h" />
     <ClInclude Include="SGObjectManager.h" />

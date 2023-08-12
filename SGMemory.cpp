@@ -5,10 +5,143 @@
 #include "SGObjectManager.h"
 
 
+class SGFixedString : ISGSnapshotable
+{
+private:
+    const char* Buffer = nullptr;
+public:
+    SGFixedString(){}
+    SGFixedString(const char* InStr)
+    {
+        SetString(InStr);
+    }
+    ~SGFixedString()
+    {
+        SGFree(Buffer);
+    }
+
+    void operator=(const char* InStr)
+    {
+        SetString(InStr);
+    }
+
+    const char* operator*() const
+    {
+        return Buffer;
+    }
+private:
+    FORCEINLINE void SetString(const char* InStr)
+    {
+        if (Buffer)
+        {
+            SGFree(Buffer);
+        }
+		auto size = strlen(InStr) + 1;
+		Buffer = (const char*) SGMalloc(size);
+		memset((void*)Buffer, 0, size);
+		memcpy((void*)Buffer, InStr, size);
+    }
+public:
+    void MakeSnapshot() override
+    {
+        throw std::logic_error("The method or operation is not implemented.");
+    }
+
+};
+
+class SGActor : public SGObject
+{
+    SG_OBJECT_TYPE_DECL(SGActor, SGObject);
+   protected:
+    SGFixedString ActorName;
+public:
+    void Create(const char* InName)
+    {
+        ActorName = InName;
+    }
+public:
+    virtual void Tick(float InDeltaTime)
+    {
+        printf("SGActor<%s>::Tick(%f)\n", *ActorName, InDeltaTime);
+    }
+    
+};
+SG_OBJECT_TYPE_IMPL(SGActor);
+
+
+class SGPlayer : public SGActor
+{
+	SG_OBJECT_TYPE_DECL(SGPlayer, SGActor);
+
+public:
+	virtual void Tick(float InDeltaTime)
+	{
+		printf("%s<%s>::Tick(%f)\n", GetTypeInfo()->Name, *ActorName, InDeltaTime);
+        SGActor::Tick(InDeltaTime);
+	}
+};
+SG_OBJECT_TYPE_IMPL(SGPlayer);
+
+class SGEnemy: public SGActor
+{
+	SG_OBJECT_TYPE_DECL(SGEnemy, SGActor);
+
+public:
+	virtual void Tick(float InDeltaTime)
+	{
+		printf("%s<%s>::Tick(%f)\n", GetTypeInfo()->Name, *ActorName, InDeltaTime);
+		SGActor::Tick(InDeltaTime);
+	}
+};
+SG_OBJECT_TYPE_IMPL(SGEnemy);
+
+class SGWorld : public SGObject
+{
+	SG_OBJECT_TYPE_DECL(SGWorld, SGObject);
+private:
+    SGPlayer* Actor1;
+    SGEnemy* Actor2;
+
+public:
+    void Create()
+    {
+        Actor1 = NewObject<SGPlayer>();
+        Actor1->Create("Slight");
+		Actor2 = NewObject<SGEnemy>();
+		Actor2->Create("Cold");
+    }
+
+	virtual void Tick(float InDeltaTime)
+	{
+		printf("SGWorld::Tick(%f)\n", InDeltaTime);
+        Actor1->Tick(InDeltaTime);
+        Actor2->Tick(InDeltaTime);
+	}
+};
+SG_OBJECT_TYPE_IMPL(SGWorld);
+
+//////////////////////////////////////////////////////////////////////////
+
+
+SGHandle CreateWorld()
+{
+	SGWorld* World = NewObject<SGWorld>();
+	World->Create();
+	return World->GetHandle();
+}
+
+
 int main()
 {
-    int32* PtrInt32 = NewObject<int32>();
-    *PtrInt32 = 123456;
+    GDefaultMemoryManager = new SGMemoryManager();
+    SGHandlePtr<SGWorld> World = CreateWorld();
+    World->Tick(0.33);
+
+    
+
+    
+
+
 
     
     std::cout << "Hello World!\n";

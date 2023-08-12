@@ -321,6 +321,13 @@ private:
 
 };
 
+struct SGMemorySnapshot
+{
+	void* Buffer = nullptr;
+	size_t Size = 0;
+	uint64 BaseAddr = 0;
+};
+
 class SGMemoryManager
 {
 private:
@@ -328,12 +335,15 @@ private:
 	SGPoolAllocator* Allocator = nullptr;
 
 public:
-	static SGMemoryManager& Get();
-public:
 	SGMemoryManager()
 	{
 		MemoryChunk = new SGMemoryChunk(SG_MEM_CHUNK_SIZE, SG_MEM_POOL_SIZE);
 		Allocator = new SGPoolAllocator(MemoryChunk);
+	}
+	~SGMemoryManager()
+	{
+		delete Allocator;
+		delete MemoryChunk;
 	}
 
 public:
@@ -352,8 +362,19 @@ public:
 		return Allocator->Free(Ptr);
 	}
 
+public:
+	SGMemorySnapshot MakeSnapshot();
+	void ResumeSnapshot(const SGMemorySnapshot& InSnapshot)
+	{
+
+	}
+
 private:
 
 };
 
 
+static SGMemoryManager* GDefaultMemoryManager = nullptr;
+
+#define SGMalloc(Size) GDefaultMemoryManager->Malloc((size_t)Size)
+#define SGFree(Ptr) GDefaultMemoryManager->Free((void*)Ptr)

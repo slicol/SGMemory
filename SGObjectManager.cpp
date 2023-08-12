@@ -1,9 +1,10 @@
 #include "SGObjectManager.h"
 
 
-SGObject::SGObject()
+SGObject::SGObject(SGTypeInfo* InTypeInfo)
 {
 	SGObjectManager::Get().AddHandleObject(this);
+	TypeId = InTypeInfo->Id;
 }
 
 SGObject::~SGObject()
@@ -11,12 +12,21 @@ SGObject::~SGObject()
 	SGObjectManager::Get().RemoveHandleObject(this);
 }
 
+const SGTypeInfo* SGObject::GetTypeInfo() const
+{
+	return SGObjectManager::Get().GetTypeInfo(TypeId);
+}
 
 
 SGObjectManager& SGObjectManager::Get()
 {
 	static SGObjectManager Inst;
 	return Inst;
+}
+
+SGObjectManager::SGObjectManager()
+{
+	TypeTable.push_back(nullptr);
 }
 
 void SGObjectManager::AddHandleObject(SGObject* InObject)
@@ -56,3 +66,26 @@ void SGObjectManager::RemoveHandleObject(SGObject* InObject)
 	FreeHandleValues.push(HandleValue);
 	HandleObjects[HandleValue] = nullptr;
 }
+
+
+SGObject* SGObjectManager::GetHandleObject(const SGHandle& InHandle) const
+{
+	if (InHandle.Value < HandleObjects.size())
+	{
+		SGObject* Result = HandleObjects[InHandle.Value];
+		if (Result->Handle.ValidCode == InHandle.ValidCode)
+		{
+			return Result;
+		}
+	}
+	return nullptr;
+}
+
+void SGObjectManager::RegisterType(SGTypeInfo* InTypeInfo)
+{
+	TypeTable.push_back(InTypeInfo);
+	InTypeInfo->Id = TypeTable.size() - 1;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
