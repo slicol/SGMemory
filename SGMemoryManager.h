@@ -49,11 +49,7 @@ public:
 struct SGBundleNode
 {
 	SGBundleNode* NextNodeInCurrentBundle;
-	union
-	{
-		SGBundleNode* NextBundle;
-		uint32 Count;
-	};
+	uint32 Count;
 };
 
 
@@ -61,6 +57,12 @@ struct SGBundle
 {
 	SGBundleNode* Head;
 	uint32 Count;
+
+	~SGBundle()
+	{
+		Head = nullptr;
+		Count = 0;
+	}
 
 	FORCEINLINE SGBundle()
 	{
@@ -76,7 +78,7 @@ struct SGBundle
 	FORCEINLINE void PushToFront(SGBundleNode* InNode)
 	{
 		InNode->NextNodeInCurrentBundle = Head;
-		InNode->NextBundle = nullptr;
+		InNode->Count = 0;
 		Head = InNode;
 		Count++;
 	}
@@ -135,6 +137,7 @@ struct SGFreeBlock
 class SGFreeBlockList
 {
 private:
+	friend class SGMemoryManager;
 	SGBundle Bundle;
 
 public:
@@ -159,6 +162,8 @@ public:
 class SGMemoryChunk
 {
 private:
+	friend class SGMemoryManager;
+
 	void* BasePtr = nullptr;
 	uint32 ChunkSize = 0;
 	uint32 PageSize = 0;
@@ -206,14 +211,19 @@ public:
 		return true;
 	}
 
-	FORCEINLINE void* GetBasePtr()
+	FORCEINLINE void* GetBasePtr() const
 	{
 		return BasePtr;
 	}
 
-	FORCEINLINE uint32 GetUsedSize()
+	FORCEINLINE uint32 GetUsedSize() const
 	{
 		return NumPageUsed * PageSize;
+	}
+
+	FORCEINLINE uint32 GetChunkSize() const
+	{
+		return ChunkSize;
 	}
 
 	FORCEINLINE void* AllocatePage()
@@ -239,6 +249,7 @@ public:
 class SGPoolAllocator : public ISGMalloc
 {
 private:
+	friend class SGMemoryManager;
 	static uint16 MemSizeToIndex[SG_MEM_BUCKET_COUNT];
 	static uint16 SmallBlockSizes[SG_MEM_POOL_COUNT];
 	SGFreeBlockList FreeLists[SG_MEM_POOL_COUNT];
@@ -324,8 +335,10 @@ private:
 struct SGMemorySnapshot
 {
 	void* Buffer = nullptr;
-	size_t Size = 0;
+	uint32 Size = 0;
 	uint64 BaseAddr = 0;
+	uint64 FreeBundles[SG_MEM_POOL_COUNT] = {0};
+	int64 AllocatedMemory = 0;
 };
 
 class SGMemoryManager
@@ -363,18 +376,16 @@ public:
 	}
 
 public:
-	SGMemorySnapshot MakeSnapshot();
-	void ResumeSnapshot(const SGMemorySnapshot& InSnapshot)
-	{
-
-	}
+	FORCEINLINE const SGMemoryChunk* GetMemoryChunk() const{return MemoryChunk;}
+	SGMemorySnapshot MakeSnapshot() const;
+	bool ResumeSnapshot(const SGMemorySnapshot& InSnapshot);
 
 private:
 
 };
 
 
-static SGMemoryManager* GDefaultMemoryManager = nullptr;
+extern SGMemoryManager * GDefaultMemoryManager;
 
 #define SGMalloc(Size) GDefaultMemoryManager->Malloc((size_t)Size)
 #define SGFree(Ptr) GDefaultMemoryManager->Free((void*)Ptr)

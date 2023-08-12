@@ -2,14 +2,14 @@
 #include "SGDefines.h"
 #include <vector>
 #include <stack>
+#include <set>
 #include "SGMemoryManager.h"
 
 struct SGHandle
 {
-	int32 Value = 0;
-	int32 ValidCode = 0;
+	uint32 Value = 0;
+	uint32 ValidCode = 0;
 };
-
 
 struct VTConstructor;
 typedef uint32 SGTypeId;
@@ -18,7 +18,9 @@ class SGTypeInfo;
 class ISGSnapshotable
 {
 public:
-	virtual void MakeSnapshot() = 0;
+	virtual ~ISGSnapshotable(){}
+	virtual void MakeSnapshot() const{};
+	void MarkPtrAddr(void** InPtrAddr) const;
 };
 
 class SGObject : public ISGSnapshotable
@@ -32,9 +34,20 @@ public:
 	const SGTypeInfo* GetTypeInfo() const;
 	SGObject(VTConstructor*){}
 	virtual ~SGObject();
-	void MakeSnapshot() override{}
+	
 public:
 	SGObject(SGTypeInfo* InTypeInfo);
+};
+
+
+struct SGObjectSnapshot
+{
+	uint64 BaseAddr = 0;
+	std::vector<uint32> ObjHandleValues;
+	std::vector<uint32> ObjRVATable;
+	std::vector<uint32> PtrRVATable;
+	std::vector<uint32> FreeHandleValues;
+	uint32 ValidCodeGenerator = 0;
 };
 
 
@@ -42,10 +55,14 @@ class SGObjectManager
 {
 private:
 	friend class SGObject;
+	friend class ISGSnapshotable;
+	std::vector<SGTypeInfo*> TypeTable;
+private:
 	std::vector<SGObject*> HandleObjects;
 	std::stack<uint32> FreeHandleValues;
-	std::vector<SGTypeInfo*> TypeTable;
+	mutable std::set<void**> SnapshotPtrAddrs;
 	uint32 ValidCodeGenerator = 0;
+private:
 
 public:
 	static SGObjectManager& Get();
@@ -60,6 +77,9 @@ public:
 	{
 		return TypeTable[(uint32)InTypeId];
 	}
+	
+	SGObjectSnapshot MakeSnapshot() const;
+	bool ResumeSnapshot(const SGObjectSnapshot& InSnapshot);
 };
 
 
@@ -82,6 +102,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
+
 class SGTypeInfo
 {
 private:
@@ -90,9 +111,9 @@ private:
 public:
 	uint32 Id;
 	const char* Name;
+	uint64 VTableAddr;
 public:
-	SGTypeInfo(const char* InName): Id(0), Name(InName){};
-	virtual void ResumeVT(void* InObject) = 0;
+	SGTypeInfo(const char* InName): Id(0), Name(InName), VTableAddr(0){};
 };
 
 
@@ -102,11 +123,9 @@ struct SGTypeRegister : public SGTypeInfo
 	SGTypeRegister(const char* InName): SGTypeInfo(InName)
 	{
 		SGObjectManager::Get().RegisterType(this);
-	}
 
-	void ResumeVT(void* InObject) override
-	{
-		new (InObject) T((VTConstructor*)0);
+		T Temp((VTConstructor*)0);
+		VTableAddr = *(uint64*)&Temp;
 	}
 };
 
@@ -131,7 +150,7 @@ FORCEINLINE void FreeObject(void* Ptr)
 //////////////////////////////////////////////////////////////////////////
 
 #define SG_OBJECT_TYPE_DECL(T, S) \
-	public: T(VTConstructor* v) :S(v) {} \
+	public: T(VTConstructor* v):S(v){}\
 	public: T(SGTypeInfo* v): S(v){}\
 	public: T(): S(&TypeRegister){}\
 	private: static SGTypeRegister<T> TypeRegister \

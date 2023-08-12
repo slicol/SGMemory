@@ -3,57 +3,24 @@
 
 #include <iostream>
 #include "SGObjectManager.h"
+#include "SGContainers.h"
 
 
-class SGFixedString : ISGSnapshotable
-{
-private:
-    const char* Buffer = nullptr;
-public:
-    SGFixedString(){}
-    SGFixedString(const char* InStr)
-    {
-        SetString(InStr);
-    }
-    ~SGFixedString()
-    {
-        SGFree(Buffer);
-    }
-
-    void operator=(const char* InStr)
-    {
-        SetString(InStr);
-    }
-
-    const char* operator*() const
-    {
-        return Buffer;
-    }
-private:
-    FORCEINLINE void SetString(const char* InStr)
-    {
-        if (Buffer)
-        {
-            SGFree(Buffer);
-        }
-		auto size = strlen(InStr) + 1;
-		Buffer = (const char*) SGMalloc(size);
-		memset((void*)Buffer, 0, size);
-		memcpy((void*)Buffer, InStr, size);
-    }
-public:
-    void MakeSnapshot() override
-    {
-        throw std::logic_error("The method or operation is not implemented.");
-    }
-
-};
+//////////////////////////////////////////////////////////////////////////
 
 class SGActor : public SGObject
 {
     SG_OBJECT_TYPE_DECL(SGActor, SGObject);
-   protected:
+protected:
     SGFixedString ActorName;
+
+protected:
+	void MakeSnapshot() const override
+	{
+        ActorName.MakeSnapshot();
+	}
+
+
 public:
     void Create(const char* InName)
     {
@@ -62,13 +29,13 @@ public:
 public:
     virtual void Tick(float InDeltaTime)
     {
-        printf("SGActor<%s>::Tick(%f)\n", *ActorName, InDeltaTime);
+        printf("[%p] SGActor<%s>::Tick(%f)\n", this, *ActorName, InDeltaTime);
     }
     
 };
 SG_OBJECT_TYPE_IMPL(SGActor);
 
-
+//////////////////////////////////////////////////////////////////////////
 class SGPlayer : public SGActor
 {
 	SG_OBJECT_TYPE_DECL(SGPlayer, SGActor);
@@ -76,12 +43,13 @@ class SGPlayer : public SGActor
 public:
 	virtual void Tick(float InDeltaTime)
 	{
-		printf("%s<%s>::Tick(%f)\n", GetTypeInfo()->Name, *ActorName, InDeltaTime);
+		printf("[%p] %s<%s>::Tick(%f)\n", this, GetTypeInfo()->Name, *ActorName, InDeltaTime);
         SGActor::Tick(InDeltaTime);
 	}
 };
 SG_OBJECT_TYPE_IMPL(SGPlayer);
 
+//////////////////////////////////////////////////////////////////////////
 class SGEnemy: public SGActor
 {
 	SG_OBJECT_TYPE_DECL(SGEnemy, SGActor);
@@ -89,18 +57,26 @@ class SGEnemy: public SGActor
 public:
 	virtual void Tick(float InDeltaTime)
 	{
-		printf("%s<%s>::Tick(%f)\n", GetTypeInfo()->Name, *ActorName, InDeltaTime);
+		printf("[%p] %s<%s>::Tick(%f)\n", this, GetTypeInfo()->Name, *ActorName, InDeltaTime);
 		SGActor::Tick(InDeltaTime);
 	}
 };
 SG_OBJECT_TYPE_IMPL(SGEnemy);
 
+//////////////////////////////////////////////////////////////////////////
 class SGWorld : public SGObject
 {
 	SG_OBJECT_TYPE_DECL(SGWorld, SGObject);
 private:
-    SGPlayer* Actor1;
-    SGEnemy* Actor2;
+    SGPlayer* Actor1 = nullptr;
+    SGEnemy* Actor2 = nullptr;
+
+protected:
+    void MakeSnapshot() const override
+    {
+        MarkPtrAddr((void**)&Actor1);
+        MarkPtrAddr((void**)&Actor2);
+    }
 
 public:
     void Create()
@@ -111,11 +87,30 @@ public:
 		Actor2->Create("Cold");
     }
 
+    void KillEnemy()
+    {
+        printf("[%p] SGWorld::KillEnemy()\n", this);
+        FreeObject(Actor2);
+        Actor2 = nullptr;
+    }
+
+	void NewEnemy()
+	{
+		printf("[%p] SGWorld::NewEnemy()\n", this);
+		Actor2 = NewObject<SGEnemy>();
+		Actor2->Create("NewEnemy");
+		Actor2 = NewObject<SGEnemy>();
+		Actor2->Create("NewEnemy");
+	}
+
 	virtual void Tick(float InDeltaTime)
 	{
-		printf("SGWorld::Tick(%f)\n", InDeltaTime);
+		printf("[%p] SGWorld::Tick(%f)\n", this, InDeltaTime);
         Actor1->Tick(InDeltaTime);
-        Actor2->Tick(InDeltaTime);
+        if (Actor2)
+        {
+            Actor2->Tick(InDeltaTime);
+        }
 	}
 };
 SG_OBJECT_TYPE_IMPL(SGWorld);
@@ -133,11 +128,54 @@ SGHandle CreateWorld()
 
 int main()
 {
-    GDefaultMemoryManager = new SGMemoryManager();
-    SGHandlePtr<SGWorld> World = CreateWorld();
-    World->Tick(0.33);
+    SGHandle WorldHandle;
 
     
+    {
+        //创建一个Chunk
+		GDefaultMemoryManager = new SGMemoryManager();
+        printf("MemoryChunk = %p\n", GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr());
+
+        //创建游戏世界
+        WorldHandle = CreateWorld();
+
+        //执行逻辑
+		SGHandlePtr<SGWorld> World = WorldHandle;
+		World->Tick(0.33f);
+        //World->KillEnemy();
+        //World->Tick(0.33f);
+        //World->NewEnemy();
+        //World->Tick(0.33f);
+    }
+    
+    //创建快照
+	SGMemorySnapshot MemSnapshot = GDefaultMemoryManager->MakeSnapshot();
+	SGObjectSnapshot ObjSnapshot = SGObjectManager::Get().MakeSnapshot();
+
+
+	//打乱内存
+	{
+		delete GDefaultMemoryManager;
+		new SGMemoryManager();
+	}
+
+    {
+        //创建新的Chunk
+        GDefaultMemoryManager = new SGMemoryManager();
+        printf("MemoryChunk = %p\n", GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr());
+
+        //恢复快照
+        GDefaultMemoryManager->ResumeSnapshot(MemSnapshot);
+        SGObjectManager::Get().ResumeSnapshot(ObjSnapshot);
+
+        //直接执行逻辑
+        SGHandlePtr<SGWorld> World = WorldHandle;
+        World->Tick(0.33f);
+		World->KillEnemy();
+		World->Tick(0.33f);
+		World->NewEnemy();
+		World->Tick(0.33f);
+    }
 
     
 
