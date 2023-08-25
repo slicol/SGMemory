@@ -21,5 +21,5 @@ mkdir build
 cd build
 cmake -G "Visual Studio %VS_VERSION% %VS_YEAR%" -A x64 -S .. -B .
 rem "%VS_DIR%" SGMemory.sln /Build "Release|x64" /MP
-"%MSBUILD_DIR%" INSTALL.vcxproj -m:8 -property:Configuration=Release -property:Platform=x64
+"%MSBUILD_DIR%" ALL_BUILD.vcxproj -m:8 -property:Configuration=Release -property:Platform=x64
 pause

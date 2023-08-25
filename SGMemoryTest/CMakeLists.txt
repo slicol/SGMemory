@@ -14,6 +14,7 @@ link_libraries(SGMemory)
 include_directories(./)
 include_directories(./../SGMemory/)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4819")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "@loader_path")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)

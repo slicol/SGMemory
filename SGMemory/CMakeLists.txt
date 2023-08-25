@@ -31,6 +31,8 @@ if(MSVC)
     endif ()
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4819")
+
 add_library(SGMemory STATIC ${AllModuleFiles} ${Project_All})
 target_compile_features(SGMemory PRIVATE cxx_std_17)
 
