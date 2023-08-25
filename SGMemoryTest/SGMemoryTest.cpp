@@ -177,68 +177,6 @@ int main()
 		World->Tick(0.33f);
     }
 
-    
-
-
-
-    
     std::cout << "Hello World!\n";
 }
 
-
-class TestStruct
-{
-public:
-	int32 A = 1;
-	float B = 2;
-private:
-	int32 C = 3;
-protected:
-	float D = 4;
-private:
-    int64 Foo(int32, float ){return 0;};
-};
-
-// Put these code in the same namespace:
-MTCL_EXPORT_PROPERTY_OFFSET(TestStruct, A, int32);
-MTCL_EXPORT_PROPERTY_OFFSET(TestStruct, B, float);
-MTCL_EXPORT_PROPERTY_OFFSET(TestStruct, C, int32);
-MTCL_EXPORT_PROPERTY_OFFSET(TestStruct, D, float);
-
-template <class Tag, typename Tag::offset x>
-struct MTCL_PrintRVA
-{
-	void _()
-	{
-        auto a = x;
-	#ifdef __clang__
-		//#pragma message(__PRETTY_FUNCTION__ ) 
-	#else
-	#pragma message(__FUNCSIG__ ) 
-	#endif
-	}
-};
-
-//namespace MTCL { struct TestStruct_Foo{ typedef void(TestStruct::* offset)() ; }; }	
-//template struct MTCL_CheckFuncImpl<MTCL::TestStruct_Foo, &TestStruct::Foo>;
-
-
-MTCL_CHECK_FUNC_IMPL(TestStruct, Foo, int64, int32, float );
-
-void MetaCheck()
-{
-    auto a = &TestStruct::A;
-    
-    
-}
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
