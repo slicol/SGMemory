@@ -1,6 +1,7 @@
 #pragma once
 #include "SGDefines.h"
-#include "SGObjectManager.h"
+#include "Object/SGObjectManager.h"
+#include "Allocator/SGMemoryManager.h"
 
 class SGFixedString : ISGSnapshotable
 {

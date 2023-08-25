@@ -32,3 +32,16 @@
 *.app
 .vs
 Debug
+
+build
+cmake-build*
+.idea
+/bin
+Output/*
+TestGroup
+RunMetaHeaderToolTest.bat
+.vs
+CMakeSettings.json
+Sample
+Output*
+Sample*

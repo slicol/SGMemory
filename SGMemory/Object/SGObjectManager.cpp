@@ -1,27 +1,5 @@
 #include "SGObjectManager.h"
 
-void ISGSnapshotable::MarkPtrAddr(void** InPtrAddr) const
-{
-	SGObjectManager::Get().SnapshotPtrAddrs.insert(InPtrAddr);
-}
-
-
-SGObject::SGObject(SGTypeInfo* InTypeInfo)
-{
-	SGObjectManager::Get().AddHandleObject(this);
-	TypeId = InTypeInfo->Id;
-}
-
-SGObject::~SGObject()
-{
-	SGObjectManager::Get().RemoveHandleObject(this);
-}
-
-const SGTypeInfo* SGObject::GetTypeInfo() const
-{
-	return SGObjectManager::Get().GetTypeInfo(TypeId);
-}
-
 
 SGObjectManager& SGObjectManager::Get()
 {
@@ -53,7 +31,7 @@ void SGObjectManager::AddHandleObject(SGObject* InObject)
 	{
 		if (FreeHandle >= HandleObjects.size())
 		{
-			//´¦Àí´íÎó
+			//å¤„ç†é”™è¯¯
 			return;
 		}
 		HandleObjects[FreeHandle] = InObject;
@@ -99,11 +77,11 @@ SGObjectSnapshot SGObjectManager::MakeSnapshot() const
 
 	SnapshotPtrAddrs.clear();
 
-	//ÊÕ¼¯BaseAddr
+	//æ”¶é›†BaseAddr
 	void* BasePtr = GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr();
 	Result.BaseAddr = (uint64) BasePtr;
 
-	//ÊÕ¼¯¶ÔÏóÁĞ±í
+	//æ”¶é›†å¯¹è±¡åˆ—è¡¨
 	for (auto it = HandleObjects.begin(); it != HandleObjects.end(); ++it)
 	{
 		SGObject* Obj = *it;
@@ -116,7 +94,7 @@ SGObjectSnapshot SGObjectManager::MakeSnapshot() const
 		}
 	}
 
-	//ÊÕ¼¯×ÔÓÉÖ¸Õë
+	//æ”¶é›†è‡ªç”±æŒ‡é’ˆ
 	for (auto it = SnapshotPtrAddrs.begin(); it != SnapshotPtrAddrs.end(); ++it)
 	{
 		void** PtrAddr = *it;
@@ -126,7 +104,7 @@ SGObjectSnapshot SGObjectManager::MakeSnapshot() const
 
 	SnapshotPtrAddrs.clear();
 
-	//ÊÕ¼¯×ÔÓÉ¾ä±ú
+	//æ”¶é›†è‡ªç”±å¥æŸ„
 	std::stack<uint32> TempStack = FreeHandleValues;
 	while (!TempStack.empty())
 	{
@@ -134,7 +112,7 @@ SGObjectSnapshot SGObjectManager::MakeSnapshot() const
 		TempStack.pop();
 	}
 
-	//ÊÕ¼¯Ğ£ÑéÉú³ÉÂë
+	//æ”¶é›†æ ¡éªŒç”Ÿæˆç 
 	Result.ValidCodeGenerator = ValidCodeGenerator;
 	return Result;
 }
@@ -144,17 +122,17 @@ bool SGObjectManager::ResumeSnapshot(const SGObjectSnapshot& InSnapshot)
 	void* BasePtr = GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr();
 	uint64 OffsetAddr = (uint64)BasePtr - InSnapshot.BaseAddr;
 
-	//»Ö¸´Ğ£ÑéÉú³ÉÂë
+	//æ¢å¤æ ¡éªŒç”Ÿæˆç 
 	this->ValidCodeGenerator = InSnapshot.ValidCodeGenerator;
 
-	//»Ö¸´×ÔÓÉ¾ä±ú
+	//æ¢å¤è‡ªç”±å¥æŸ„
 	this->FreeHandleValues = std::stack<uint32>();
 	for (auto it = InSnapshot.FreeHandleValues.begin(); it != InSnapshot.FreeHandleValues.end(); ++it)
 	{
 		this->FreeHandleValues.push(*it);
 	}
 	
-	//»Ö¸´×ÔÓÉÖ¸Õë
+	//æ¢å¤è‡ªç”±æŒ‡é’ˆ
 	for (auto it = InSnapshot.PtrRVATable.begin(); it != InSnapshot.PtrRVATable.end(); ++it)
 	{
 		uint64 RVA = *it;
@@ -163,11 +141,11 @@ bool SGObjectManager::ResumeSnapshot(const SGObjectSnapshot& InSnapshot)
 		*PtrAddr = NewPtrAddr;
 	}
 
-	//»Ö¸´¶ÔÏóÁĞ±í
+	//æ¢å¤å¯¹è±¡åˆ—è¡¨
 	this->HandleObjects.clear();
 	for (uint32 i = 0; i < InSnapshot.ObjHandleValues.size(); ++i)
 	{
-		//»Ö¸´¶ÔÏóµØÖ·
+		//æ¢å¤å¯¹è±¡åœ°å€
 		uint32 HandleValue = InSnapshot.ObjHandleValues[i];
 		uint64 RVA = InSnapshot.ObjRVATable[i];
 		uint64 NewAddr = (uint64)BasePtr + RVA;
@@ -176,7 +154,7 @@ bool SGObjectManager::ResumeSnapshot(const SGObjectSnapshot& InSnapshot)
 		SGObject* Obj = (SGObject*)NewAddr;
 		this->HandleObjects.push_back(Obj);
 
-		//»Ö¸´¶ÔÏóĞé±í
+		//æ¢å¤å¯¹è±¡è™šè¡¨
 		const SGTypeInfo* TypeInfo = this->GetTypeInfo(Obj->TypeId);
 		uint64 SnapshotVTableAddr = *(uint64*)Obj;
 		*(uint64*)Obj = TypeInfo->VTableAddr;

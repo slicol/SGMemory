@@ -1,37 +1,8 @@
 #pragma once
-#include "SGDefines.h"
+#include "SGMemoryDefines.h"
 #include <new>
 #include <iostream>
 
-
-
-#define SG_MEM_ALIGNMENT 16
-#define SG_MEM_POOL_COUNT 26
-#define SG_MEM_POOL_SCALE (2048-16)
-#define SG_MEM_POOL_SIZE  65536
-#define SG_MEM_CHUNK_SIZE (1<<24)
-#define SG_MEM_BUCKET_COUNT  (1 + (SG_MEM_POOL_SCALE >> 4))
-
-
-//¹Ø¼ü£º»ùÓÚ¶ÔÆë¹æÔò£¬ÕÒµ½Ö¸ÕëËùÊôµÄÄÚ´æ¿é
-template <typename T>
-FORCEINLINE constexpr T AlignDown(T Val, uint64 Alignment)
-{
-	return (T)(((uint64)Val) & ~(Alignment - 1));
-}
-
-//¹Ø¼ü£ºÅÐ¶ÏÒ»¸öÖ¸ÕëÊÇ·ñ¸ÕºÃÊÇ¶ÔÆëÄÚ´æ¿éµÄÆðµã
-template <typename T>
-FORCEINLINE constexpr bool IsAligned(T Val, uint64 Alignment)
-{
-	return !((uint64)Val & (Alignment - 1));
-}
-
-template <typename T>
-static FORCEINLINE bool IsPowerOfTwo(T Value)
-{
-	return ((Value & (Value - 1)) == (T)0);
-}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -107,16 +78,16 @@ struct SGFreeBlock
 		NextFreeBlock = nullptr;
 		NumFreeBlocks = InPoolSize / InBlockSize;
 
-		//¶ÔÓÚ²»ÄÜÕû³ýµÄ£¬Õâ¸öÌõ¼þÒ»¶¨ÊÇ²»³ÉÁ¢µÄ£¬ÄÇÃ´ÕýºÃ¿ÉÒÔÓÃÓàÊý¿Õ¼äÀ´×÷ÎªFirstFreeBlock
+		//å¯¹äºŽä¸èƒ½æ•´é™¤çš„ï¼Œè¿™ä¸ªæ¡ä»¶ä¸€å®šæ˜¯ä¸æˆç«‹çš„ï¼Œé‚£ä¹ˆæ­£å¥½å¯ä»¥ç”¨ä½™æ•°ç©ºé—´æ¥ä½œä¸ºFirstFreeBlock
 		if (NumFreeBlocks * InBlockSize + sizeof(SGFreeBlock) > InPoolSize)
 		{
-			//¶ÔÓÚÄÜ¹»Õû³ýµÄ£¬ÐèÒªÕ¼ÓÃÒ»¸öBlockÀ´ÓÃ×÷FirstFreeBlock
+			//å¯¹äºŽèƒ½å¤Ÿæ•´é™¤çš„ï¼Œéœ€è¦å ç”¨ä¸€ä¸ªBlockæ¥ç”¨ä½œFirstFreeBlock
 			NumFreeBlocks--;
 		}
 		
 	}
 
-	//·ÖÅäÒ»¸öBlock³öÈ¥
+	//åˆ†é…ä¸€ä¸ªBlockå‡ºåŽ»
 	FORCEINLINE void* AllocateRegularBlock()
 	{
 		--NumFreeBlocks;
@@ -175,7 +146,7 @@ public:
 	{
 		if (!IsPowerOfTwo(InPageSize))
 		{
-			//´¦Àí´íÎó
+			//å¤„ç†é”™è¯¯
 			return;
 		}
 		
@@ -186,7 +157,7 @@ public:
 
 		if (BasePtr == nullptr)
 		{
-			//´¦Àí´íÎó
+			//å¤„ç†é”™è¯¯
 		}
 	}
 
@@ -202,7 +173,7 @@ public:
 	{
 		if (InSize > ChunkSize || InSize % PageSize != 0)
 		{
-			//´¦Àí´íÎó
+			//å¤„ç†é”™è¯¯
 			return false;
 		}
 
@@ -236,7 +207,7 @@ public:
 		}
 		else
 		{
-			//´¦Àí´íÎó
+			//å¤„ç†é”™è¯¯
 		}
 		return Result;
 	}
@@ -280,7 +251,7 @@ public:
 		}
 		else
 		{
-			//·ÖÅäÊ§°Ü´¦Àí
+			//åˆ†é…å¤±è´¥å¤„ç†
 		}
 
 		return Result;
@@ -307,7 +278,7 @@ public:
 			AllocatedMemory -= BasePtr->BlockSize;
 			return;
 		}
-		//´íÎó´¦Àí
+		//é”™è¯¯å¤„ç†
 	}
 
 private:
@@ -331,61 +302,3 @@ private:
 	}
 
 };
-
-struct SGMemorySnapshot
-{
-	void* Buffer = nullptr;
-	uint32 Size = 0;
-	uint64 BaseAddr = 0;
-	uint64 FreeBundles[SG_MEM_POOL_COUNT] = {0};
-	int64 AllocatedMemory = 0;
-};
-
-class SGMemoryManager
-{
-private:
-	SGMemoryChunk* MemoryChunk = nullptr;
-	SGPoolAllocator* Allocator = nullptr;
-
-public:
-	SGMemoryManager()
-	{
-		MemoryChunk = new SGMemoryChunk(SG_MEM_CHUNK_SIZE, SG_MEM_POOL_SIZE);
-		Allocator = new SGPoolAllocator(MemoryChunk);
-	}
-	~SGMemoryManager()
-	{
-		delete Allocator;
-		delete MemoryChunk;
-	}
-
-public:
-	void* Malloc(size_t Size, uint32 Alignment = SG_MEM_ALIGNMENT)
-	{
-		return Allocator->Malloc(Size, Alignment);
-	}
-
-	void* Realloc(void* Original, size_t Size, uint32 Alignment = SG_MEM_ALIGNMENT)
-	{
-		return Allocator->Realloc(Original, Size, Alignment);
-	}
-
-	void Free(void* Ptr)
-	{
-		return Allocator->Free(Ptr);
-	}
-
-public:
-	FORCEINLINE const SGMemoryChunk* GetMemoryChunk() const{return MemoryChunk;}
-	SGMemorySnapshot MakeSnapshot() const;
-	bool ResumeSnapshot(const SGMemorySnapshot& InSnapshot);
-
-private:
-
-};
-
-
-extern SGMemoryManager * GDefaultMemoryManager;
-
-#define SGMalloc(Size) GDefaultMemoryManager->Malloc((size_t)Size)
-#define SGFree(Ptr) GDefaultMemoryManager->Free((void*)Ptr)

@@ -2,8 +2,8 @@
 //
 
 #include <iostream>
-#include "SGObjectManager.h"
-#include "SGContainers.h"
+#include "Object/SGObjectManager.h"
+#include "Container/SGContainers.h"
 
 
 //////////////////////////////////////////////////////////////////////////
