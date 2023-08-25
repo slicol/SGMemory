@@ -146,7 +146,7 @@ public:
 	{
 		if (!IsPowerOfTwo(InPageSize))
 		{
-			//处理错误
+			//TODO：处理错误
 			return;
 		}
 		
@@ -157,7 +157,7 @@ public:
 
 		if (BasePtr == nullptr)
 		{
-			//处理错误
+			//TODO：处理错误
 		}
 	}
 
@@ -173,7 +173,7 @@ public:
 	{
 		if (InSize > ChunkSize || InSize % PageSize != 0)
 		{
-			//处理错误
+			//TODO：处理错误
 			return false;
 		}
 
@@ -207,7 +207,7 @@ public:
 		}
 		else
 		{
-			//处理错误
+			//TODO：处理错误
 		}
 		return Result;
 	}
@@ -251,7 +251,7 @@ public:
 		}
 		else
 		{
-			//分配失败处理
+			//TODO：分配失败处理
 		}
 
 		return Result;
@@ -265,6 +265,8 @@ public:
 			uint32 BlockSize = 0;
 			uint32 PoolIndex = 0;
 			bool bCanFree = true;
+
+			//TODO：该逻辑未完成
 		}
 		return nullptr;
 	}
@@ -278,7 +280,7 @@ public:
 			AllocatedMemory -= BasePtr->BlockSize;
 			return;
 		}
-		//错误处理
+		//TODO：错误处理
 	}
 
 private:

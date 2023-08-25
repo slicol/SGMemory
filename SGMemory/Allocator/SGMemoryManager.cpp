@@ -33,13 +33,13 @@ bool SGMemoryManager::ResumeSnapshot(const SGMemorySnapshot& InSnapshot)
 {
 	if (MemoryChunk->ChunkSize < InSnapshot.Size)
 	{
-		//处理错误
+		//TODO：处理错误
 		return false;
 	}
 
 	if (!IsPowerOfTwo(InSnapshot.Size) || InSnapshot.Size % MemoryChunk->PageSize != 0)
 	{
-		//处理错误
+		//TODO：处理错误
 		return false;
 	}
 	
