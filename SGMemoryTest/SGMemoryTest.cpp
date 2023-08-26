@@ -125,21 +125,28 @@ SGHandle CreateWorld()
 	return World->GetHandle();
 }
 
+//////////////////////////////////////////////////////////////////////////
+
+
+
+//////////////////////////////////////////////////////////////////////////
 
 int main()
 {
+
+
     SGHandle WorldHandle;
 
     
     {
-        //创建一个Chunk
+        //鍒涘缓涓�涓狢hunk
 		GDefaultMemoryManager = new SGMemoryManager();
         printf("MemoryChunk = %p\n", GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr());
 
-        //创建游戏世界
+        //鍒涘缓娓告垙涓栫晫
         WorldHandle = CreateWorld();
 
-        //执行逻辑
+        //鎵ц閫昏緫
 		SGHandlePtr<SGWorld> World = WorldHandle;
 		World->Tick(0.33f);
         //World->KillEnemy();
@@ -148,27 +155,27 @@ int main()
         //World->Tick(0.33f);
     }
     
-    //创建快照
+    //鍒涘缓蹇収
 	SGMemorySnapshot MemSnapshot = GDefaultMemoryManager->MakeSnapshot();
 	SGObjectSnapshot ObjSnapshot = SGObjectManager::Get().MakeSnapshot();
 
 
-	//打乱内存
+	//鎵撲贡鍐呭瓨
 	{
 		delete GDefaultMemoryManager;
 		new SGMemoryManager();
 	}
 
     {
-        //创建新的Chunk
+        //鍒涘缓鏂扮殑Chunk
         GDefaultMemoryManager = new SGMemoryManager();
         printf("MemoryChunk = %p\n", GDefaultMemoryManager->GetMemoryChunk()->GetBasePtr());
 
-        //恢复快照
+        //鎭㈠蹇収
         GDefaultMemoryManager->ResumeSnapshot(MemSnapshot);
         SGObjectManager::Get().ResumeSnapshot(ObjSnapshot);
 
-        //直接执行逻辑
+        //鐩存帴鎵ц閫昏緫
         SGHandlePtr<SGWorld> World = WorldHandle;
         World->Tick(0.33f);
 		World->KillEnemy();
@@ -179,4 +186,5 @@ int main()
 
     std::cout << "Hello World!\n";
 }
+
 
